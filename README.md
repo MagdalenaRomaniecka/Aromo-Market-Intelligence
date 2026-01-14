@@ -2,7 +2,7 @@
 title: Aromo Market Intelligence
 emoji: 📊
 colorFrom: yellow
-colorTo: black
+colorTo: gray
 sdk: streamlit
 sdk_version: 1.31.0
 app_file: app.py
