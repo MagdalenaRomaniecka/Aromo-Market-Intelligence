@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# --- 1. PAGE CONFIGURATION ---
+# --- 1. CONFIGURATION ---
 st.set_page_config(
     page_title="Aromo Market Intelligence",
     page_icon="💎",
@@ -10,7 +10,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- 2. DARK LUXURY CSS ---
+# --- 2. DARK LUXURY CSS (FIXED DROPDOWNS & CHARTS) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Montserrat:wght@300;400;600&display=swap');
@@ -21,6 +21,23 @@ st.markdown("""
     /* SIDEBAR - FORCE BLACK */
     section[data-testid="stSidebar"] { background-color: #000000 !important; border-right: 1px solid #222; }
     section[data-testid="stSidebar"] * { color: #AAAAAA !important; }
+
+    /* FIX: DROPDOWN MENU COLORS (Removes white box) */
+    div[data-baseweb="select"] > div {
+        background-color: #111 !important;
+        color: #E0E0E0 !important;
+        border-color: #333 !important;
+    }
+    div[data-baseweb="popover"], div[data-baseweb="menu"] {
+        background-color: #111 !important;
+    }
+    li[role="option"] {
+        color: #E0E0E0 !important;
+    }
+    li[role="option"]:hover, li[role="option"][aria-selected="true"] {
+        background-color: #D4AF37 !important;
+        color: #000 !important;
+    }
 
     /* TYPOGRAPHY */
     h1, h2, h3 { font-family: 'Cormorant Garamond', serif !important; color: #D4AF37 !important; }
@@ -46,38 +63,36 @@ st.markdown("""
         width: 100%; text-align: center; padding: 30px 0; margin-top: 50px;
         border-top: 1px solid #222; color: #444; font-size: 0.7rem; font-family: 'Montserrat', sans-serif;
     }
-    .custom-footer a { color: #666; text-decoration: none; }
-    .custom-footer a:hover { color: #D4AF37; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. DATA ENGINE ---
+# --- 3. DATA ENGINE (AGGRESSIVE CLEANING) ---
 @st.cache_data
 def load_data():
     file_path = 'aromo_english.csv'
     try:
-        # Auto-detect separator (comma or semicolon)
+        # Load Data
         df = pd.read_csv(file_path, sep=None, engine='python')
-        
-        # Normalize column names
         df.columns = df.columns.str.lower().str.strip()
         
-        # --- AGGRESSIVE CLEANING ---
-        df = df.dropna(how='all') 
+        # --- 1. REMOVE GARBAGE ---
+        df = df.dropna(subset=['brand'])
         
-        # Create helper columns for deduplication
+        # --- 2. AGGRESSIVE DEDUPLICATION ---
+        # Normalize text to find duplicates like "Dior" vs "dior "
         df['brand_norm'] = df['brand'].astype(str).str.lower().str.strip()
         
-        if 'name' in df.columns:
-            df['name_norm'] = df['name'].astype(str).str.lower().str.strip()
-            # Remove duplicates: Same Brand + Same Name
+        name_col = 'name' if 'name' in df.columns else 'perfume'
+        if name_col in df.columns:
+            df['name_norm'] = df[name_col].astype(str).str.lower().str.strip()
+            # Drop duplicates based on normalized Brand + Name
             df = df.drop_duplicates(subset=['brand_norm', 'name_norm'])
         else:
-            # Fallback
             df = df.drop_duplicates(subset=['brand_norm', 'families'])
 
-        # Display Formatting
+        # --- 3. FORMATTING ---
         df['Brand'] = df['brand'].astype(str).str.title().str.strip()
+        df['families'] = df['families'].fillna('Unclassified')
         
         # Year Cleaning (Crucial for Charts)
         df['Year_Numeric'] = pd.to_numeric(df['year'], errors='coerce').fillna(0).astype(int)
@@ -113,7 +128,7 @@ st.markdown("<h1 style='text-align:center;'>Aromo Market Intelligence</h1>", uns
 st.markdown(f"<p style='text-align:center; color:#666; font-size:0.8rem; margin-bottom:40px; text-transform:uppercase;'>Strategic Insights • {subtitle}</p>", unsafe_allow_html=True)
 
 if df.empty:
-    st.error("⚠️ Failed to load data. Please check 'aromo_english.csv'.")
+    st.error("⚠️ Failed to load data. Please check the CSV file.")
     st.stop()
 
 # --- TABS ---
@@ -129,7 +144,7 @@ with tab1:
     
     if not df_active.empty:
         peak = df_active['Year_Numeric'].mode()[0]
-        c2.metric("Peak Activity", int(peak))
+        c2.metric("Peak Activity", int(peak) if peak > 0 else "N/A")
     else:
         c2.metric("Peak Activity", "-")
         
@@ -139,23 +154,28 @@ with tab1:
     st.markdown("---")
     st.markdown("### Market Saturation (Launches per Year)")
     
-    # CHART
+    # CHART: AREA CHART (Sorted & Visible)
     if not df_active.empty:
-        trend_data = df_active.groupby('Year_Numeric').size().reset_index(name='Count')
+        # 1. Filter valid years only
+        chart_data = df_active[df_active['Year_Numeric'] > 0]
+        # 2. Group and count
+        trend_data = chart_data.groupby('Year_Numeric').size().reset_index(name='Count')
+        # 3. SORTING IS CRITICAL for Area Chart
+        trend_data = trend_data.sort_values('Year_Numeric')
         
-        fig = px.bar(trend_data, x='Year_Numeric', y='Count')
+        fig = px.area(trend_data, x='Year_Numeric', y='Count')
         
         fig.update_layout(
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             font_color='#AAA',
             font_family='Montserrat',
-            xaxis=dict(title="", type='category', showgrid=False), # Force category axis
+            xaxis=dict(title="", showgrid=False),
             yaxis=dict(title="", showgrid=True, gridcolor='#222'),
             margin=dict(l=0, r=0, t=0, b=0),
             height=350
         )
-        fig.update_traces(marker_color='#D4AF37')
+        fig.update_traces(line_color='#D4AF37', fillcolor='rgba(212, 175, 55, 0.2)')
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("No dated data available for the selected period.")
@@ -205,7 +225,14 @@ with tab3:
     })
     
     fig_ai = px.bar(mock, x='Match Score', y='Competitor', orientation='h', text='Match Score')
-    fig_ai.update_traces(marker_color='#D4AF37', texttemplate='%{text}%', textposition='inside')
+    
+    # Fixed hover/text template
+    fig_ai.update_traces(
+        marker_color='#D4AF37', 
+        texttemplate='%{text}%', 
+        textposition='inside'
+    )
+    
     fig_ai.update_layout(
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
