@@ -95,27 +95,33 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. DATA LOADING ---
+# --- 3. DATA LOADING (UPDATED LOGIC) ---
 @st.cache_data
 def load_data():
     file_path = 'aromo_english.csv'
     try:
-        df = pd.read_csv(file_path)
+        # Load EVERYTHING first
+        df_raw = pd.read_csv(file_path)
         
-        # Data Cleaning
-        df['year'] = pd.to_numeric(df['year'], errors='coerce')
-        df = df.dropna(subset=['year'])
-        df = df[df['year'] > 1900] # Remove invalid years
-        df['year'] = df['year'].astype(int)
-        df['families'] = df['families'].fillna('Unclassified')
-        df['brand'] = df['brand'].astype(str).str.strip().str.title()
+        # Basic cleaning for all rows
+        df_raw['brand'] = df_raw['brand'].astype(str).str.strip().str.title()
+        df_raw['families'] = df_raw['families'].fillna('Unclassified')
         
-        return df
+        # Create a separate version for charts (only rows with valid years)
+        df_chart = df_raw.copy()
+        df_chart['year'] = pd.to_numeric(df_chart['year'], errors='coerce')
+        df_chart = df_chart.dropna(subset=['year'])
+        df_chart = df_chart[df_chart['year'] > 1900]
+        df_chart['year'] = df_chart['year'].astype(int)
+        
+        return df_raw, df_chart
+        
     except FileNotFoundError:
         st.error("⚠️ Data file not found. Please ensure 'aromo_english.csv' is in the repository.")
-        return pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame()
 
-df = load_data()
+# Load both datasets: raw (for counts) and chart (for timelines)
+df_raw, df_chart = load_data()
 
 # --- 4. SIDEBAR FILTERS ---
 with st.sidebar:
@@ -124,23 +130,23 @@ with st.sidebar:
     st.write("---")
     st.markdown("<p style='color:#888; font-size:0.7rem; letter-spacing:2px; text-transform:uppercase;'>Time Horizon</p>", unsafe_allow_html=True)
     
-    if not df.empty:
-        min_year = int(df['year'].min())
-        max_year = int(df['year'].max())
+    if not df_chart.empty:
+        min_year = int(df_chart['year'].min())
+        max_year = int(df_chart['year'].max())
         
-        # FIXED: Slider now defaults to the FULL range (showing all 64k perfumes)
         selected_years = st.slider("Select Period", min_year, max_year, (min_year, max_year))
         
-        mask = (df['year'] >= selected_years[0]) & (df['year'] <= selected_years[1])
-        df_filtered = df.loc[mask]
+        # Filter the CHART dataset based on slider
+        mask = (df_chart['year'] >= selected_years[0]) & (df_chart['year'] <= selected_years[1])
+        df_chart_filtered = df_chart.loc[mask]
     else:
-        df_filtered = df
+        df_chart_filtered = df_chart
 
 # --- 5. MAIN DASHBOARD ---
 st.markdown('<div class="gold-title">Market Intelligence</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-header">Strategic Insights for the Fragrance Industry</div>', unsafe_allow_html=True)
 
-if df.empty:
+if df_raw.empty:
     st.stop()
 
 # --- TABS ---
@@ -150,28 +156,30 @@ tab1, tab2, tab3 = st.tabs(["📈 GLOBAL TRENDS", "🧬 BRAND DNA", "🤖 COMPET
 with tab1:
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # KPI SECTION
+    # KPI SECTION - UPDATED TO SHOW TOTAL DATABASE SIZE
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Total Launches", f"{len(df_filtered):,}")
+        # Shows FULL count (including undated perfumes)
+        st.metric("Total Database Size", f"{len(df_raw):,}")
     with col2:
-        if not df_filtered.empty:
-            top_year = df_filtered['year'].mode()[0]
+        if not df_chart_filtered.empty:
+            top_year = df_chart_filtered['year'].mode()[0]
             st.metric("Peak Activity Year", int(top_year))
     with col3:
-        unique_brands = df_filtered['brand'].nunique()
-        st.metric("Active Brands", f"{unique_brands:,}")
+        # Shows FULL brand count
+        unique_brands = df_raw['brand'].nunique()
+        st.metric("Total Active Brands", f"{unique_brands:,}")
 
     st.markdown("<br><br>", unsafe_allow_html=True)
 
-    # CHART: AREA CHART (Gold Gradient)
-    if not df_filtered.empty:
-        trend_data = df_filtered.groupby('year').size().reset_index(name='launches')
+    # CHART: AREA CHART (Uses only dated data)
+    if not df_chart_filtered.empty:
+        trend_data = df_chart_filtered.groupby('year').size().reset_index(name='launches')
         
         fig_trend = px.area(trend_data, x='year', y='launches')
         
         fig_trend.update_layout(
-            title="MARKET SATURATION OVER TIME",
+            title="MARKET SATURATION OVER TIME (Dated Releases)",
             paper_bgcolor='rgba(0,0,0,0)', 
             plot_bgcolor='rgba(0,0,0,0)', 
             font=dict(color='#888', family="Montserrat"),
@@ -184,16 +192,21 @@ with tab1:
         
         fig_trend.update_traces(line_color='#D4AF37', fillcolor='rgba(212, 175, 55, 0.15)')
         st.plotly_chart(fig_trend, use_container_width=True)
+    else:
+        st.info("No dated perfumes found in this range.")
 
 # === TAB 2: BRAND ANALYSIS ===
 with tab2:
     st.markdown("<br>", unsafe_allow_html=True)
     col_sel, col_empty = st.columns([1, 2])
     with col_sel:
-        all_brands = sorted(df_filtered['brand'].unique())
+        # Select from ALL brands
+        all_brands = sorted(df_raw['brand'].unique())
         selected_brand = st.selectbox("Select Brand:", all_brands, index=0)
     
-    brand_data = df_filtered[df_filtered['brand'] == selected_brand]
+    # Analyze specific brand
+    brand_data_raw = df_raw[df_raw['brand'] == selected_brand]
+    brand_data_chart = df_chart[df_chart['brand'] == selected_brand] # Dated only
     
     st.markdown("---")
     
@@ -201,18 +214,32 @@ with tab2:
     with col1:
         st.markdown(f"<h2 style='color:#D4AF37; font-family:Cormorant Garamond; margin-bottom:0;'>{selected_brand}</h2>", unsafe_allow_html=True)
         st.caption("PORTFOLIO SNAPSHOT")
-        st.write(f"Total Fragrances: **{len(brand_data)}**")
-        if not brand_data.empty:
-            avg_year = int(brand_data['year'].mean())
+        
+        # Total portfolio size (including undated)
+        st.write(f"Total Fragrances: **{len(brand_data_raw)}**")
+        
+        if not brand_data_chart.empty:
+            avg_year = int(brand_data_chart['year'].mean())
             st.write(f"Avg. Vintage: **{avg_year}**")
-            top_fam = brand_data['families'].mode()[0] if not brand_data['families'].isnull().all() else "N/A"
+        else:
+             st.write(f"Avg. Vintage: **N/A**")   
+
+        if not brand_data_raw.empty:
+            top_fam = brand_data_raw['families'].mode()[0] if not brand_data_raw['families'].isnull().all() else "N/A"
             st.write(f"Key Style: **{top_fam}**")
 
     with col2:
-        if not brand_data.empty:
-            # Simplification logic for sunburst
-            brand_data['main_family'] = brand_data['families'].astype(str).apply(lambda x: x.split(',')[0].strip())
-            fig_sun = px.sunburst(brand_data, path=['main_family', 'year'], 
+        # Sunburst chart needs filtering for better visuals
+        if not brand_data_raw.empty:
+            plot_data = brand_data_raw.copy()
+            # If no year, label as "Undated"
+            plot_data['year_label'] = plot_data.apply(
+                lambda x: str(int(x['year'])) if (pd.notnull(x.get('year')) and str(x['year']).isdigit() and int(x['year']) > 1900) else "Undated", axis=1
+            )
+            
+            plot_data['main_family'] = plot_data['families'].astype(str).apply(lambda x: x.split(',')[0].strip())
+            
+            fig_sun = px.sunburst(plot_data, path=['main_family', 'year_label'], 
                              color_discrete_sequence=px.colors.sequential.RdBu)
             fig_sun.update_layout(
                 paper_bgcolor='rgba(0,0,0,0)',
