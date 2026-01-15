@@ -5,36 +5,50 @@ import plotly.express as px
 # --- 1. CONFIGURATION ---
 st.set_page_config(
     page_title="Aromo Market Intelligence",
-    page_icon="📊",
+    page_icon="mn",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- 2. LUXURY CSS (DARK THEME) ---
+# --- 2. FORCED DARK LUXURY CSS ---
 st.markdown("""
     <style>
+    /* IMPORT FONTS */
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Montserrat:wght@300;400;600&display=swap');
 
-    html, body, [class*="css"], .stMarkdown, div, span, p {
-        font-family: 'Montserrat', sans-serif !important;
-        font-weight: 400 !important; 
-        color: #E0E0E0 !important;
-    }
-
-    /* CLEAN LAYOUT */
-    header {visibility: hidden;}
-    .block-container {
-        padding-top: 2rem !important;
-        padding-bottom: 5rem !important;
-    }
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-
-    /* BACKGROUND */
+    /* FORCE DARK BACKGROUND EVERYWHERE */
     .stApp {
         background-color: #050505;
         background-image: radial-gradient(circle at 50% 0%, #1a1a1a 0%, #000000 100%);
     }
+
+    /* FORCE SIDEBAR BLACK */
+    section[data-testid="stSidebar"] {
+        background-color: #000000 !important;
+        border-right: 1px solid #333;
+    }
+    
+    /* FIX SIDEBAR TEXT COLOR */
+    section[data-testid="stSidebar"] .stMarkdown, 
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] span,
+    section[data-testid="stSidebar"] label {
+        color: #E0E0E0 !important;
+    }
+
+    /* GLOBAL FONTS */
+    html, body, [class*="css"], div, span, p {
+        font-family: 'Montserrat', sans-serif !important;
+        font-weight: 400 !important; 
+        color: #E0E0E0;
+    }
+
+    /* REMOVE WHITESPACE */
+    .block-container {
+        padding-top: 2rem !important;
+        padding-bottom: 5rem !important;
+    }
+    header, footer, #MainMenu {visibility: hidden;}
 
     /* GOLD HEADERS */
     .gold-title {
@@ -65,39 +79,35 @@ st.markdown("""
 
     /* METRIC CARDS */
     div[data-testid="stMetric"] {
-        background-color: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(212, 175, 55, 0.1);
+        background-color: rgba(20, 20, 20, 0.8) !important;
+        border: 1px solid rgba(212, 175, 55, 0.2) !important;
         padding: 15px;
         text-align: center;
     }
-    div[data-testid="stMetricLabel"] { color: #666 !important; font-size: 0.7rem !important; letter-spacing: 2px; text-transform: uppercase; }
+    div[data-testid="stMetricLabel"] { color: #888 !important; font-size: 0.7rem !important; letter-spacing: 2px; text-transform: uppercase; }
     div[data-testid="stMetricValue"] { color: #D4AF37 !important; font-family: 'Cormorant Garamond', serif !important; font-size: 2.2rem !important; }
 
-    /* FOOTER */
-    .custom-footer {
-        text-align: center; color: #444; font-size: 0.6rem !important; margin-top: 50px; 
-        padding-top: 20px; border-top: 1px solid #111; letter-spacing: 1px;
-    }
+    /* SLIDER COLOR FIX */
+    div[data-baseweb="slider"] div { background-color: #D4AF37 !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. DATA LOADING (ROBUST) ---
+# --- 3. DATA LOADING & CLEANING ---
 @st.cache_data
 def load_data():
     file_path = 'aromo_english.csv'
     try:
-        # 1. Load Data
         df = pd.read_csv(file_path)
         
-        # 2. FIX DUPLICATES (This solves the 78k vs 64k issue)
+        # 1. REMOVE EXACT DUPLICATES (Fixes the 78k issue)
         df = df.drop_duplicates()
-
-        # 3. Clean Text Columns
+        
+        # 2. CLEAN TEXT
         df['brand'] = df['brand'].astype(str).str.strip().str.title()
         df['families'] = df['families'].fillna('Unclassified')
         
-        # 4. Clean Years (Strict Mode)
-        # Force conversion to numeric, turn errors into NaN
+        # 3. CLEAN YEARS (CRITICAL FOR CHART)
+        # Force convert to numeric, turning errors to NaN
         df['year_clean'] = pd.to_numeric(df['year'], errors='coerce')
         
         return df
@@ -108,32 +118,31 @@ def load_data():
 
 df = load_data()
 
-# --- 4. PREPARE DATA FOR CHARTS ---
-# Create a dedicated dataframe for the timeline charts
-# We only keep rows where 'year_clean' is a valid number > 1900
+# --- 4. PREPARE CHART DATA ---
+# Create a strict subset for charts: ONLY valid years > 1900
 df_chart = df.dropna(subset=['year_clean']).copy()
 df_chart['year_clean'] = df_chart['year_clean'].astype(int)
 df_chart = df_chart[df_chart['year_clean'] > 1900]
-df_chart = df_chart.sort_values('year_clean') # SORTING IS CRITICAL FOR CHARTS
+df_chart = df_chart.sort_values('year_clean')
 
 # --- 5. SIDEBAR ---
 with st.sidebar:
-    st.markdown("<div style='text-align:center; margin-bottom:20px; color:#D4AF37; font-family:Cormorant Garamond; font-size:1.5rem; letter-spacing:2px;'>AROMO<br><span style='font-size:0.7rem; font-family:Montserrat; color:#666;'>INTELLIGENCE</span></div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; margin-bottom:20px; color:#D4AF37; font-family:Cormorant Garamond; font-size:1.5rem; letter-spacing:2px;'>AROMO<br><span style='font-size:0.7rem; font-family:Montserrat; color:#888;'>INTELLIGENCE</span></div>", unsafe_allow_html=True)
     st.write("---")
     
+    # Year Slider
     if not df_chart.empty:
         min_year = int(df_chart['year_clean'].min())
         max_year = int(df_chart['year_clean'].max())
-        
         selected_years = st.slider("Analysis Period", min_year, max_year, (min_year, max_year))
         
-        # Filter Chart Data
+        # Filter Logic
         mask = (df_chart['year_clean'] >= selected_years[0]) & (df_chart['year_clean'] <= selected_years[1])
         df_chart_filtered = df_chart.loc[mask]
     else:
         df_chart_filtered = df_chart
 
-# --- 6. DASHBOARD ---
+# --- 6. MAIN DASHBOARD ---
 st.markdown('<div class="gold-title">Market Intelligence</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-header">Strategic Insights for the Fragrance Industry</div>', unsafe_allow_html=True)
 
@@ -147,55 +156,53 @@ tab1, tab2, tab3 = st.tabs(["📈 TRENDS", "🧬 BRAND DNA", "🤖 AI COMPETITOR
 with tab1:
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # KPI
+    # KPI CARDS
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Total Fragrances", f"{len(df):,}") # Real unique count
+        st.metric("Total Fragrances", f"{len(df):,}")
     with col2:
         if not df_chart_filtered.empty:
-            top_year = df_chart_filtered['year_clean'].mode()[0]
-            st.metric("Peak Year", int(top_year))
+            peak = df_chart_filtered['year_clean'].mode()[0]
+            st.metric("Peak Activity", int(peak))
         else:
-            st.metric("Peak Year", "N/A")
+            st.metric("Peak Activity", "N/A")
     with col3:
-        unique_brands = df['brand'].nunique()
-        st.metric("Active Brands", f"{unique_brands:,}")
+        brands_count = df['brand'].nunique()
+        st.metric("Active Brands", f"{brands_count:,}")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # CHART FIX
+    # AREA CHART (FIXED)
     if not df_chart_filtered.empty:
-        # Prepare data: Count launches per year
+        # Group by year to get counts
         trend_data = df_chart_filtered.groupby('year_clean').size().reset_index(name='launches')
         
         fig_trend = px.area(trend_data, x='year_clean', y='launches')
         
         fig_trend.update_layout(
-            title="MARKET SATURATION OVER TIME",
+            title="MARKET SATURATION",
             paper_bgcolor='rgba(0,0,0,0)', 
             plot_bgcolor='rgba(0,0,0,0)', 
             font=dict(color='#AAA', family="Montserrat"),
             title_font=dict(family="Cormorant Garamond", size=20, color="#D4AF37"),
-            height=450,
+            height=400,
             xaxis=dict(showgrid=False, title="", color='#666'),
             yaxis=dict(showgrid=True, gridcolor='#222', title="")
         )
-        
-        # Use bright gold color and fill
         fig_trend.update_traces(line_color='#D4AF37', fillcolor='rgba(212, 175, 55, 0.2)')
         st.plotly_chart(fig_trend, use_container_width=True)
     else:
-        st.warning("No dated data available for this range.")
+        st.warning("No data for timeline chart.")
 
 # === TAB 2: BRAND ANALYSIS ===
 with tab2:
     st.markdown("<br>", unsafe_allow_html=True)
+    
     col_sel, _ = st.columns([1, 2])
     with col_sel:
         all_brands = sorted(df['brand'].unique())
         selected_brand = st.selectbox("Select Brand:", all_brands, index=0)
     
-    # Filter Logic
     brand_data = df[df['brand'] == selected_brand]
     brand_data_chart = df_chart[df_chart['brand'] == selected_brand]
     
@@ -208,17 +215,17 @@ with tab2:
         st.write(f"Total Scents: **{len(brand_data)}**")
         
         if not brand_data_chart.empty:
-            avg_year = int(brand_data_chart['year_clean'].mean())
-            st.write(f"Avg. Vintage: **{avg_year}**")
-        
+            avg = int(brand_data_chart['year_clean'].mean())
+            st.write(f"Avg. Vintage: **{avg}**")
+            
         if not brand_data.empty:
-            top_fam = brand_data['families'].mode()[0]
-            st.write(f"Style: **{top_fam}**")
+            style = brand_data['families'].mode()[0]
+            st.write(f"Key Style: **{style}**")
 
     with col2:
         if not brand_data.empty:
-            # Sunburst Logic
             plot_data = brand_data.copy()
+            # Handle undated for visualization
             plot_data['year_label'] = plot_data['year_clean'].fillna(0).astype(int).astype(str).replace('0', 'Undated')
             plot_data['main_family'] = plot_data['families'].astype(str).apply(lambda x: x.split(',')[0].strip())
             
@@ -234,9 +241,9 @@ with tab2:
 # === TAB 3: AI COMPETITOR ===
 with tab3:
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown(f"<h3 style='color:#D4AF37; font-family:Cormorant Garamond'>AI DNA Match: {selected_brand}</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='color:#D4AF37; font-family:Cormorant Garamond'>AI Match: {selected_brand}</h3>", unsafe_allow_html=True)
     
-    # Placeholder Data
+    # Dummy Visualization
     comp_data = pd.DataFrame({
         'Competitor': ['Tom Ford', 'Dior', 'Yves Saint Laurent', 'Gucci', 'Givenchy'],
         'Similarity': [94, 89, 85, 78, 72], 
@@ -254,12 +261,6 @@ with tab3:
         height=300
     )
     st.plotly_chart(fig_bar, use_container_width=True)
-
-# --- DEBUGGER (USUŃ GDY ZADZIAŁA) ---
-with st.expander("🛠️ DATA DEBUGGER (Check if chart is empty)"):
-    st.write("Chart Data Preview:", df_chart_filtered.head())
-    if not df_chart_filtered.empty:
-        st.write("Trend Data:", df_chart_filtered.groupby('year_clean').size().head())
 
 # --- FOOTER ---
 st.markdown("""
