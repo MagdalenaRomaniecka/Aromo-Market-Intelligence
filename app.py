@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# --- 1. CONFIGURATION ---
+# --- 1. PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="Aromo Market Intelligence",
     page_icon="📊",
@@ -10,19 +10,27 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- 2. LUXURY CSS (SCENTSATIONAL STYLE FOR AROMO) ---
+# --- 2. LUXURY CSS (DARK THEME) ---
 st.markdown("""
     <style>
     /* IMPORT FONTS */
-    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Montserrat:wght@300;400;600&display=swap');
 
     /* GLOBAL STYLES */
     html, body, [class*="css"], .stMarkdown, div, span, p {
         font-family: 'Montserrat', sans-serif !important;
         font-weight: 400 !important; 
         color: #E0E0E0 !important;
-        font-size: 0.95rem !important;
     }
+
+    /* REMOVE DEFAULT STREAMLIT TOP BAR & MARGINS */
+    header {visibility: hidden;}
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 5rem !important;
+    }
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
 
     /* BACKGROUND */
     .stApp {
@@ -30,79 +38,59 @@ st.markdown("""
         background-image: radial-gradient(circle at 50% 0%, #1a1a1a 0%, #000000 100%);
     }
 
-    /* --- TYPOGRAPHY --- */
-    h1, h2, h3 {
-        font-family: 'Cormorant Garamond', serif !important;
-        font-weight: 300 !important;
-        color: #D4AF37 !important;
-    }
-
-    /* CUSTOM TITLE GRADIENT */
+    /* GOLD HEADERS */
     .gold-title {
         font-family: 'Cormorant Garamond', serif !important;
         font-weight: 300 !important;
-        background: linear-gradient(to bottom, #D4AF37 0%, #F0E68C 100%);
+        background: linear-gradient(to right, #D4AF37 0%, #F0E68C 50%, #D4AF37 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        font-size: clamp(2.5rem, 5vw, 4rem) !important; 
+        font-size: clamp(2.5rem, 5vw, 4.5rem) !important; 
         text-transform: uppercase;
-        letter-spacing: 4px;
+        letter-spacing: 2px;
         margin: 0;
-        padding-top: 10px;
+        text-align: center;
+        padding-bottom: 10px;
     }
     
     .sub-header {
         font-family: 'Montserrat', sans-serif !important;
         color: #888;
-        font-size: 0.8rem !important;
-        letter-spacing: 3px;
+        font-size: 0.9rem !important;
+        letter-spacing: 4px;
         text-transform: uppercase;
-        margin-bottom: 30px;
+        text-align: center;
+        margin-bottom: 40px;
+        border-bottom: 1px solid #333;
+        padding-bottom: 20px;
     }
 
-    /* --- SIDEBAR STYLING --- */
+    /* SIDEBAR STYLING */
     section[data-testid="stSidebar"] {
         background-color: #080808 !important;
-        border-right: 1px solid rgba(212, 175, 55, 0.15);
+        border-right: 1px solid #222;
     }
-    
-    /* Custom Slider */
-    div[data-baseweb="slider"] div { background-color: #D4AF37 !important; }
-    
-    /* --- METRIC CARDS --- */
-    div[data-testid="stMetric"] {
-        background-color: rgba(20, 20, 20, 0.6);
-        border: 1px solid rgba(212, 175, 55, 0.2);
-        padding: 15px;
-        border-radius: 5px;
-        text-align: center;
-    }
-    div[data-testid="stMetricLabel"] { color: #888 !important; font-size: 0.8rem !important; text-transform: uppercase; letter-spacing: 1px; }
-    div[data-testid="stMetricValue"] { color: #D4AF37 !important; font-family: 'Cormorant Garamond', serif !important; font-size: 2rem !important; }
 
-    /* --- TABS --- */
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
-    .stTabs [data-baseweb="tab"] {
-        background-color: transparent;
-        border: 1px solid #333;
-        color: #888;
+    /* KPI METRIC CARDS */
+    div[data-testid="stMetric"] {
+        background-color: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(212, 175, 55, 0.1);
+        padding: 20px;
         border-radius: 0px;
-        padding: 10px 20px;
-        font-family: 'Montserrat', sans-serif;
-        text-transform: uppercase;
-        font-size: 0.8rem;
-        letter-spacing: 1px;
+        text-align: center;
+        transition: 0.3s;
     }
-    .stTabs [aria-selected="true"] {
-        background-color: rgba(212, 175, 55, 0.1) !important;
-        border: 1px solid #D4AF37 !important;
-        color: #D4AF37 !important;
+    div[data-testid="stMetric"]:hover {
+        border-color: #D4AF37;
+        background-color: rgba(212, 175, 55, 0.05);
     }
+    div[data-testid="stMetricLabel"] { color: #666 !important; font-size: 0.7rem !important; letter-spacing: 2px; text-transform: uppercase; }
+    div[data-testid="stMetricValue"] { color: #D4AF37 !important; font-family: 'Cormorant Garamond', serif !important; font-size: 2.5rem !important; }
 
     /* FOOTER */
     .custom-footer {
-        text-align: center; color: #444; font-size: 0.6rem !important; margin-top: 80px; 
-        padding-top: 20px; border-top: 1px solid #111; letter-spacing: 0.5px; opacity: 0.7;
+        text-align: center; color: #444; font-size: 0.6rem !important; margin-top: 50px; 
+        padding-top: 20px; border-top: 1px solid #111; letter-spacing: 1px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -114,41 +102,41 @@ def load_data():
     try:
         df = pd.read_csv(file_path)
         
-        # Cleaning
+        # Data Cleaning
         df['year'] = pd.to_numeric(df['year'], errors='coerce')
         df = df.dropna(subset=['year'])
-        df = df[df['year'] > 1900]
+        df = df[df['year'] > 1900] # Remove invalid years
         df['year'] = df['year'].astype(int)
         df['families'] = df['families'].fillna('Unclassified')
         df['brand'] = df['brand'].astype(str).str.strip().str.title()
         
         return df
     except FileNotFoundError:
-        st.error(f"⚠️ SYSTEM ERROR: File '{file_path}' missing.")
+        st.error("⚠️ Data file not found. Please ensure 'aromo_english.csv' is in the repository.")
         return pd.DataFrame()
 
 df = load_data()
 
-# --- 4. SIDEBAR ---
+# --- 4. SIDEBAR FILTERS ---
 with st.sidebar:
-    st.markdown("<div style='text-align:center; color:#D4AF37; font-family:Cormorant Garamond; font-size:1.5rem; letter-spacing:2px; margin-bottom:20px;'>AROMO<br><span style='font-size:0.8rem; font-family:Montserrat; color:#888;'>INTELLIGENCE</span></div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; margin-bottom:30px; color:#D4AF37; font-family:Cormorant Garamond; font-size:1.5rem; letter-spacing:3px;'>AROMO<br><span style='font-size:0.7rem; font-family:Montserrat; color:#666;'>INTELLIGENCE</span></div>", unsafe_allow_html=True)
     
     st.write("---")
-    st.markdown("<p style='color:#D4AF37; font-size:0.7rem; font-weight:bold; letter-spacing:2px;'>FILTERS</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#888; font-size:0.7rem; letter-spacing:2px; text-transform:uppercase;'>Time Horizon</p>", unsafe_allow_html=True)
     
     if not df.empty:
         min_year = int(df['year'].min())
         max_year = int(df['year'].max())
         
-        selected_years = st.slider("Analysis Period", min_year, max_year, (2015, 2024))
+        # FIXED: Slider now defaults to the FULL range (showing all 64k perfumes)
+        selected_years = st.slider("Select Period", min_year, max_year, (min_year, max_year))
         
         mask = (df['year'] >= selected_years[0]) & (df['year'] <= selected_years[1])
         df_filtered = df.loc[mask]
     else:
         df_filtered = df
 
-# --- 5. MAIN LAYOUT ---
-# Header Style form ScentSational
+# --- 5. MAIN DASHBOARD ---
 st.markdown('<div class="gold-title">Market Intelligence</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-header">Strategic Insights for the Fragrance Industry</div>', unsafe_allow_html=True)
 
@@ -156,117 +144,113 @@ if df.empty:
     st.stop()
 
 # --- TABS ---
-tab1, tab2, tab3 = st.tabs(["📈 TRENDS", "🧬 BRAND DNA", "🤖 COMPETITOR AI"])
+tab1, tab2, tab3 = st.tabs(["📈 GLOBAL TRENDS", "🧬 BRAND DNA", "🤖 COMPETITOR AI"])
 
-# === TAB 1: MACRO TRENDS ===
+# === TAB 1: MARKET TRENDS ===
 with tab1:
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # KPIs styled by CSS
+    # KPI SECTION
     col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("Total Launches", f"{len(df_filtered):,}")
     with col2:
         if not df_filtered.empty:
             top_year = df_filtered['year'].mode()[0]
-            st.metric("Peak Activity", int(top_year))
+            st.metric("Peak Activity Year", int(top_year))
     with col3:
         unique_brands = df_filtered['brand'].nunique()
-        st.metric("Active Brands", unique_brands)
+        st.metric("Active Brands", f"{unique_brands:,}")
 
-    st.markdown("---")
+    st.markdown("<br><br>", unsafe_allow_html=True)
 
-    # CHART: Launches over time (GOLD STYLE)
+    # CHART: AREA CHART (Gold Gradient)
     if not df_filtered.empty:
         trend_data = df_filtered.groupby('year').size().reset_index(name='launches')
         
-        fig_trend = px.area(trend_data, x='year', y='launches', 
-                            title='Market Saturation: Product Launches Over Time')
+        fig_trend = px.area(trend_data, x='year', y='launches')
         
-        # APPLYING DARK LUXURY THEME TO PLOTLY
         fig_trend.update_layout(
+            title="MARKET SATURATION OVER TIME",
             paper_bgcolor='rgba(0,0,0,0)', 
             plot_bgcolor='rgba(0,0,0,0)', 
-            font=dict(color='#E0E0E0', family="Montserrat"),
-            title_font=dict(family="Cormorant Garamond", size=24, color="#D4AF37"),
-            xaxis=dict(gridcolor='#333'),
-            yaxis=dict(gridcolor='#333')
+            font=dict(color='#888', family="Montserrat"),
+            title_font=dict(family="Cormorant Garamond", size=20, color="#D4AF37"),
+            margin=dict(l=0, r=0, t=50, b=0),
+            height=400,
+            xaxis=dict(showgrid=False, title=""),
+            yaxis=dict(showgrid=True, gridcolor='#222', title="")
         )
-        fig_trend.update_traces(line_color='#D4AF37', fillcolor='rgba(212, 175, 55, 0.2)')
         
+        fig_trend.update_traces(line_color='#D4AF37', fillcolor='rgba(212, 175, 55, 0.15)')
         st.plotly_chart(fig_trend, use_container_width=True)
 
 # === TAB 2: BRAND ANALYSIS ===
 with tab2:
     st.markdown("<br>", unsafe_allow_html=True)
-    
-    # Dropdown styled by CSS
-    all_brands = sorted(df_filtered['brand'].unique())
-    selected_brand = st.selectbox("Select Brand to Analyze:", all_brands, index=0)
+    col_sel, col_empty = st.columns([1, 2])
+    with col_sel:
+        all_brands = sorted(df_filtered['brand'].unique())
+        selected_brand = st.selectbox("Select Brand:", all_brands, index=0)
     
     brand_data = df_filtered[df_filtered['brand'] == selected_brand]
     
-    col1, col2 = st.columns([1, 2])
+    st.markdown("---")
     
+    col1, col2 = st.columns([1, 2])
     with col1:
-        st.markdown(f"<h3 style='color:#D4AF37'>{selected_brand}</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h2 style='color:#D4AF37; font-family:Cormorant Garamond; margin-bottom:0;'>{selected_brand}</h2>", unsafe_allow_html=True)
+        st.caption("PORTFOLIO SNAPSHOT")
         st.write(f"Total Fragrances: **{len(brand_data)}**")
         if not brand_data.empty:
             avg_year = int(brand_data['year'].mean())
-            st.write(f"Average Vintage: **{avg_year}**")
+            st.write(f"Avg. Vintage: **{avg_year}**")
             top_fam = brand_data['families'].mode()[0] if not brand_data['families'].isnull().all() else "N/A"
-            st.write(f"Dominant Profile: **{top_fam}**")
-        else:
-            st.write("No data in selected range.")
+            st.write(f"Key Style: **{top_fam}**")
 
     with col2:
         if not brand_data.empty:
+            # Simplification logic for sunburst
             brand_data['main_family'] = brand_data['families'].astype(str).apply(lambda x: x.split(',')[0].strip())
-            
             fig_sun = px.sunburst(brand_data, path=['main_family', 'year'], 
-                             title=f"Olfactory DNA: {selected_brand}",
                              color_discrete_sequence=px.colors.sequential.RdBu)
-            
-            # DARK THEME FOR SUNBURST
             fig_sun.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)', 
-                font=dict(color='#E0E0E0', family="Montserrat"),
-                title_font=dict(family="Cormorant Garamond", size=24, color="#D4AF37"),
+                paper_bgcolor='rgba(0,0,0,0)',
+                margin=dict(t=0, l=0, r=0, b=0),
+                height=400
             )
             st.plotly_chart(fig_sun, use_container_width=True)
 
-# === TAB 3: COMPETITOR AI ===
+# === TAB 3: AI COMPETITOR ===
 with tab3:
     st.markdown("<br>", unsafe_allow_html=True)
-    st.caption("Powered by Sentence-Transformers & Vector Embeddings")
+    st.markdown(f"<h3 style='color:#D4AF37; font-family:Cormorant Garamond'>AI Competitor Analysis: {selected_brand}</h3>", unsafe_allow_html=True)
+    st.caption("Nearest neighbors based on Olfactory DNA (Vector Space Analysis)")
     
-    st.markdown(f"### ⚡ AI Competitor Analysis for **{selected_brand}**")
-    
-    # Dummy data with Gold Theme
+    # Dummy data for visualization
     comp_data = pd.DataFrame({
         'Competitor': ['Tom Ford', 'Dior', 'Yves Saint Laurent', 'Gucci', 'Givenchy'],
-        'Similarity Score': [0.94, 0.89, 0.85, 0.78, 0.72], 
+        'Similarity': [94, 89, 85, 78, 72], 
     })
     
-    fig_bar = px.bar(comp_data, x='Similarity Score', y='Competitor', orientation='h',
-                     title=f"Nearest Neighbors (Vector Space)",
-                     color='Similarity Score',
-                     color_continuous_scale=['#333333', '#D4AF37']) # Black to Gold gradient
+    fig_bar = px.bar(comp_data, x='Similarity', y='Competitor', orientation='h',
+                     text='Similarity')
     
+    fig_bar.update_traces(marker_color='#D4AF37', texttemplate='%{text}%', textposition='inside')
     fig_bar.update_layout(
         paper_bgcolor='rgba(0,0,0,0)', 
         plot_bgcolor='rgba(0,0,0,0)', 
         font=dict(color='#E0E0E0', family="Montserrat"),
-        title_font=dict(family="Cormorant Garamond", size=24, color="#D4AF37"),
-        yaxis={'categoryorder':'total ascending'},
-        xaxis=dict(gridcolor='#333'),
-        coloraxis_showscale=False
+        yaxis={'categoryorder':'total ascending', 'title': ''},
+        xaxis={'visible': False},
+        margin=dict(l=0, r=0, t=20, b=0),
+        height=300
     )
     st.plotly_chart(fig_bar, use_container_width=True)
 
 # --- FOOTER ---
 st.markdown("""
 <div class="custom-footer">
-    Aromo Market Intelligence v2.0 &bull; 2026 &bull; Powered by Python & Plotly
+    AROMO MARKET INTELLIGENCE &bull; 2026 &bull; POWERED BY PYTHON
 </div>
 """, unsafe_allow_html=True)
