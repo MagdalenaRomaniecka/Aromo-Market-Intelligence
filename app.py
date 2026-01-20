@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import re
 
 # --- 1. CONFIGURATION ---
 st.set_page_config(
@@ -44,34 +43,30 @@ st.markdown("""
 @st.cache_data(ttl=0)
 def load_data():
     file_path = 'aromo_english.csv'
-    
     try:
         df = pd.read_csv(file_path, sep=None, engine='python')
         df.columns = df.columns.str.lower().str.strip()
         
-        # 1. Cleanup Empty Brands
+        # Cleanup
         df = df.dropna(subset=['brand'])
         
-        # 2. BRAND NAME CLEANING (Remove #, *, - from start)
-        # To naprawia #Queensunited -> Queensunited
+        # Fix Brand Names (Remove #, *)
         df['Brand'] = df['brand'].astype(str).str.strip().str.lstrip("#*-").str.title()
         
-        # 3. Year Parsing
+        # Year Parsing
         df['year_clean'] = pd.to_numeric(df['year'], errors='coerce').fillna(0).astype(int)
         
-        # 4. DEDUPLICATION (Powrót do ~65k)
+        # Deduplication
         name_col = 'name' if 'name' in df.columns else 'perfume'
         if name_col in df.columns:
             df['name_norm'] = df[name_col].astype(str).str.lower().str.strip()
             df['brand_norm'] = df['Brand'].str.lower()
-            # Usuwamy duplikaty: Ta sama marka + Ta sama nazwa
             df = df.drop_duplicates(subset=['brand_norm', 'name_norm'])
         
-        # 5. Fill Missing Families
+        # Families
         df['families'] = df['families'].fillna('Unknown')
         
         return df
-        
     except Exception as e:
         st.error(f"⚠️ Data Error: {e}")
         return pd.DataFrame()
@@ -100,49 +95,51 @@ if df.empty:
 
 # KPI
 c1, c2, c3 = st.columns(3)
-c1.metric("Unique Fragrances", f"{len(df):,}") # Powinno być ok. 60-70k
+c1.metric("Unique Fragrances", f"{len(df):,}") 
 c2.metric("Peak Year", int(df_chart['year_clean'].mode()[0]) if not df_chart.empty else "-")
 c3.metric("Active Brands", f"{df['Brand'].nunique():,}")
 
 st.markdown("---")
 
-# --- TABS ---
+# --- TABS (ON TOP) ---
 tab_trends, tab_dna, tab_ai = st.tabs(["📈 TRENDS", "🧬 BRAND DNA", "🤖 AI COMPETITOR"])
 
-# === TAB 1: TRENDS (BAR CHART - PEWNIAK) ===
+# === TAB 1: TRENDS (AREA CHART - ALWAYS VISIBLE) ===
 with tab_trends:
-    st.markdown("### Annual Releases") # Prostszy tytuł
+    st.markdown("### Market Saturation")
     
     if not df_chart.empty:
+        # Group by year
         chart_data = df_chart[df_chart['year_clean'] > 0].groupby('year_clean').size().reset_index(name='Count')
         chart_data = chart_data.sort_values('year_clean')
         
         if not chart_data.empty:
-            # BAR CHART jest zawsze widoczny i czytelny
-            fig = px.bar(chart_data, x='year_clean', y='Count')
+            # AREA CHART (Filled Mountain) - Najlepiej widoczny
+            fig = px.area(chart_data, x='year_clean', y='Count')
             
             fig.update_layout(
                 plot_bgcolor='rgba(0,0,0,0)',
                 paper_bgcolor='rgba(0,0,0,0)',
                 font_color='#E0E0E0',
+                # Axis Settings
                 xaxis=dict(showgrid=False, title="", color='#AAA'),
                 yaxis=dict(showgrid=True, gridcolor='#222', title="", zeroline=False),
                 height=350,
-                margin=dict(l=0,r=0,t=30,b=0),
+                margin=dict(l=0,r=0,t=10,b=0),
                 hovermode="x unified"
             )
-            # Złote słupki
-            fig.update_traces(marker_color='#D4AF37')
+            # Gold Fill
+            fig.update_traces(line_color='#D4AF37', fillcolor='rgba(212, 175, 55, 0.3)')
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.warning("No data for chart.")
 
-# === TAB 2: BRAND DNA ===
+# === TAB 2: BRAND DNA (LABELS INSIDE) ===
 with tab_dna:
     st.markdown("<br>", unsafe_allow_html=True)
     brands = sorted(df['Brand'].unique())
     
-    # Domyślnie Tom Ford (żeby nie było Queensunited na starcie)
+    # Default: Tom Ford
     default_ix = brands.index("Tom Ford") if "Tom Ford" in brands else 0
     sel_brand = st.selectbox("Select Brand:", brands, index=default_ix)
     b_df = df[df['Brand'] == sel_brand]
@@ -158,36 +155,47 @@ with tab_dna:
     with colB:
         if not b_df.empty and 'families' in b_df.columns:
             b_df['Main_Fam'] = b_df['families'].astype(str).apply(lambda x: x.split(',')[0])
+            
             fig_pie = px.pie(b_df, names='Main_Fam', color_discrete_sequence=px.colors.qualitative.Pastel)
             fig_pie.update_layout(
                 paper_bgcolor='rgba(0,0,0,0)', 
                 font_color='#DDD', 
                 height=300, 
                 margin=dict(t=0,b=0),
-                showlegend=True
+                showlegend=False # UKRYWAMY LEGENDĘ (zajmuje miejsce)
             )
+            # POKAZUJEMY NAZWY NA WYKRESIE
+            fig_pie.update_traces(textposition='inside', textinfo='percent+label')
             st.plotly_chart(fig_pie, use_container_width=True)
 
-# === TAB 3: AI COMPETITOR (NAPRAWIONE ETYKIETY) ===
+# === TAB 3: AI COMPETITOR (CLEAN AXIS) ===
 with tab_ai:
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown(f"### AI Match: {sel_brand}")
     
+    # Dane
     mock = pd.DataFrame({
-        'Competitor': ['Tom Ford', 'Dior', 'YSL', 'Chanel', 'Gucci'], # Jasna nazwa kolumny
-        'Match Score': [95, 88, 82, 75, 70]
+        'Competitor': ['Tom Ford', 'Dior', 'YSL', 'Chanel', 'Gucci'], 
+        'Score': [95, 88, 82, 75, 70]
     })
     
-    # Wyraźnie wskazujemy: Y to Marka, X to Wynik
-    fig_bar = px.bar(mock, x='Match Score', y='Competitor', orientation='h', text_auto=True)
+    # Wykres
+    fig_bar = px.bar(mock, x='Score', y='Competitor', orientation='h', text='Score')
     
-    fig_bar.update_traces(marker_color='#D4AF37', textfont_color='black', textposition='inside')
+    fig_bar.update_traces(
+        marker_color='#D4AF37', 
+        texttemplate='%{text}%', # Pokazuje "95%"
+        textposition='inside',
+        textfont_color='black'
+    )
+    
     fig_bar.update_layout(
         plot_bgcolor='rgba(0,0,0,0)', 
         paper_bgcolor='rgba(0,0,0,0)', 
         font_color='#AAA', 
+        # CAŁKOWICIE UKRYWAMY DOLNĄ OŚ (1, 2, 3...)
         xaxis=dict(visible=False), 
-        yaxis=dict(title=""), # Usuwamy tytuł osi Y, same nazwy wystarczą
+        yaxis=dict(title=""), 
         height=250, 
         margin=dict(t=0,b=0)
     )
