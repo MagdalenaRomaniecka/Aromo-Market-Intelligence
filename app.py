@@ -29,13 +29,15 @@ st.markdown("""
     li[role="option"] { color: #CCC !important; }
     li[role="option"]:hover { background-color: #D4AF37 !important; color: #000 !important; }
 
-    /* TYPOGRAPHY & METRICS */
+    /* TYPOGRAPHY */
     h1, h2, h3 { font-family: 'Montserrat', sans-serif !important; color: #D4AF37 !important; text-transform: uppercase; letter-spacing: 2px; }
+    
+    /* METRIC CARDS */
     div[data-testid="stMetric"] { background-color: #090909; border: 1px solid #222; padding: 10px; border-radius: 0px; }
     div[data-testid="stMetricLabel"] { color: #666 !important; font-size: 0.7rem !important; }
     div[data-testid="stMetricValue"] { color: #D4AF37 !important; font-size: 1.8rem !important; }
     
-    /* HIDE STREAMLIT UI */
+    /* HIDE UI */
     header, footer {visibility: hidden;}
     </style>
     """, unsafe_allow_html=True)
@@ -43,7 +45,6 @@ st.markdown("""
 # --- 3. DATA ENGINE ---
 @st.cache_data(ttl=0)
 def load_data():
-    # Używamy pliku aromo_cleaned.csv (jest mniejszy i lepszy)
     file_path = 'aromo_cleaned.csv'
     
     try:
@@ -56,20 +57,21 @@ def load_data():
         # 2. Year Parsing
         df['year_clean'] = pd.to_numeric(df['year'], errors='coerce').fillna(0).astype(int)
         
-        # 3. BALANCED DEDUPLICATION (Mniej agresywne niż poprzednio)
-        # Usuwamy tylko dokładne duplikaty (Marka + Nazwa), ale nie wycinamy "EDT/EDP"
-        # Dzięki temu "Sauvage" i "Sauvage Elixir" będą osobno (poprawnie).
+        # 3. GENTLE DEDUPLICATION (To get back to ~65k)
+        # We only remove 100% duplicates (Same Brand + Same Exact Name)
+        # We do NOT remove suffixes like EDT/EDP anymore.
         
         name_col = 'name' if 'name' in df.columns else 'perfume'
         
         if name_col in df.columns:
             df['brand_norm'] = df['brand'].astype(str).str.lower().str.strip()
             df['name_norm'] = df[name_col].astype(str).str.lower().str.strip()
-            # Usuwamy tylko 100% duplikaty
+            # Drop only exact matches
             df = df.drop_duplicates(subset=['brand_norm', 'name_norm'])
         
-        # 4. Formatting
-        df['Brand'] = df['brand'].astype(str).str.title().strip()
+        # 4. Formatting (FIXED THE ERROR HERE)
+        # Added .str before .strip()
+        df['Brand'] = df['brand'].astype(str).str.title().str.strip()
         df['families'] = df['families'].fillna('Unknown')
         
         return df
@@ -108,54 +110,37 @@ c3.metric("Active Brands", f"{df['Brand'].nunique():,}")
 
 st.markdown("---")
 
-# --- CHART SECTION (FIXED VISIBILITY) ---
+# --- CHART SECTION ---
 st.markdown("### 📈 Market Dynamics (Launches)")
 
 if not df_chart.empty:
-    # Agregacja danych
     chart_data = df_chart[df_chart['year_clean'] > 0].groupby('year_clean').size().reset_index(name='Count')
     chart_data = chart_data.sort_values('year_clean')
     
     if not chart_data.empty:
-        # Zmiana na SCATTER z linią (lepiej widoczne punkty)
+        # Scatter/Line Chart for better visibility
         fig = px.line(chart_data, x='year_clean', y='Count', markers=True)
         
         fig.update_layout(
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
-            font_color='#E0E0E0', # Jasna czcionka
-            xaxis=dict(
-                showgrid=False, 
-                title="", 
-                color='#888',
-                showline=True, 
-                linecolor='#444'
-            ),
-            yaxis=dict(
-                showgrid=True, 
-                gridcolor='#222', 
-                title="",
-                zeroline=False
-            ),
+            font_color='#AAA',
+            # Explicit axis colors to be visible on black
+            xaxis=dict(showgrid=False, title="", color='#888', showline=True, linecolor='#444'),
+            yaxis=dict(showgrid=True, gridcolor='#222', title="", zeroline=False),
             height=350,
-            margin=dict(l=0,r=0,t=20,b=0),
+            margin=dict(l=0,r=0,t=10,b=0),
             hovermode="x unified"
         )
-        # Wymuszenie jasnego koloru linii i punktów
-        fig.update_traces(
-            line_color='#E0E0E0', 
-            line_width=2, 
-            marker_size=6, 
-            marker_color='#D4AF37' # Złote punkty
-        )
+        # Gold Line & Markers
+        fig.update_traces(line_color='#D4AF37', line_width=2, marker_size=6, marker_color='#D4AF37')
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.warning("No dated data available for this range.")
 else:
     st.info("No data to display.")
 
-# --- TABS SECTION (KONTENERY DLA MOBILNOŚCI) ---
-# Tabs muszą być na górnym poziomie, żeby nie spadały
+# --- TABS ---
 t1, t2 = st.tabs(["🧬 BRAND DNA", "🤖 AI COMPETITOR"])
 
 with t1:
@@ -164,12 +149,12 @@ with t1:
     sel_brand = st.selectbox("Select Brand:", brands)
     b_df = df[df['Brand'] == sel_brand]
     
-    # Używamy kontenera, żeby zachować układ
+    # Layout container for mobile stability
     with st.container():
         colA, colB = st.columns([1,2])
         with colA:
             st.markdown(f"<h3 style='color:#D4AF37'>{sel_brand}</h3>", unsafe_allow_html=True)
-            st.write(f"**Total Scents:** {len(b_df)}")
+            st.write(f"**Portfolio Size:** {len(b_df)}")
             if not b_df.empty:
                 if 'families' in b_df.columns:
                     val = b_df['families'].mode()
@@ -186,8 +171,8 @@ with t1:
                     paper_bgcolor='rgba(0,0,0,0)', 
                     font_color='#DDD', 
                     height=300, 
-                    margin=dict(t=0,b=0,l=0,r=0),
-                    showlegend=False 
+                    margin=dict(t=0,b=0),
+                    showlegend=False
                 )
                 fig_pie.update_traces(textposition='inside', textinfo='percent+label')
                 st.plotly_chart(fig_pie, use_container_width=True)
@@ -210,7 +195,7 @@ with t2:
         xaxis=dict(visible=False), 
         yaxis=dict(title=""), 
         height=250, 
-        margin=dict(t=0,b=0,l=0,r=0)
+        margin=dict(t=0,b=0)
     )
     st.plotly_chart(fig_bar, use_container_width=True)
 
