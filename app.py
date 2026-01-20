@@ -15,7 +15,6 @@ st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap');
     
-    /* GLOBAL THEME */
     .stApp { background-color: #000000; color: #E0E0E0; }
     
     /* SIDEBAR */
@@ -40,37 +39,32 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. DATA ENGINE (BALANCED) ---
+# --- 3. DATA ENGINE ---
 @st.cache_data(ttl=0)
 def load_data():
-    # WRACAMY DO DUŻEGO PLIKU (aromo_english.csv)
     file_path = 'aromo_english.csv'
     
     try:
         df = pd.read_csv(file_path, sep=None, engine='python')
         df.columns = df.columns.str.lower().str.strip()
         
-        # 1. Basic Cleanup
+        # 1. Cleanup
         df = df.dropna(subset=['brand'])
         
         # 2. Year Parsing
         df['year_clean'] = pd.to_numeric(df['year'], errors='coerce').fillna(0).astype(int)
         
-        # 3. BALANCED DEDUPLICATION (The Sweet Spot)
-        # Usuwamy tylko DOKŁADNE duplikaty.
-        # "Sauvage" i "Sauvage EDT" zostaną jako dwa zapachy (bo to prawda).
-        # To powinno dać wynik ok. 60-70k.
-        
+        # 3. BALANCED DEDUPLICATION
         name_col = 'name' if 'name' in df.columns else 'perfume'
         if name_col in df.columns:
             df['brand_norm'] = df['brand'].astype(str).str.lower().str.strip()
             df['name_norm'] = df[name_col].astype(str).str.lower().str.strip()
-            
-            # Keep first occurrence of unique Brand+Name pair
+            # Drop duplicates
             df = df.drop_duplicates(subset=['brand_norm', 'name_norm'])
         
-        # 4. Final Formatting
-        df['Brand'] = df['brand'].astype(str).str.title().strip()
+        # 4. Formatting - FIXED THE ERROR HERE
+        # Było: .strip() -> Jest: .str.strip()
+        df['Brand'] = df['brand'].astype(str).str.title().str.strip()
         df['families'] = df['families'].fillna('Unknown')
         
         return df
@@ -95,13 +89,13 @@ with st.sidebar:
     else:
         df_chart = df
 
-# --- 5. DASHBOARD LAYOUT ---
+# --- 5. DASHBOARD ---
 st.markdown("<h1 style='text-align:center;'>Market Intelligence</h1>", unsafe_allow_html=True)
 
 if df.empty:
     st.stop()
 
-# --- KPI SECTION (ALWAYS TOP) ---
+# KPI
 c1, c2, c3 = st.columns(3)
 c1.metric("Unique Fragrances", f"{len(df):,}") 
 c2.metric("Peak Activity", int(df_chart['year_clean'].mode()[0]) if not df_chart.empty else "-")
@@ -109,35 +103,30 @@ c3.metric("Active Brands", f"{df['Brand'].nunique():,}")
 
 st.markdown("---")
 
-# --- TABS SECTION (MOVED UP FOR BETTER UX) ---
-# Zakładki są teraz NAD wykresem trendów, żeby "Brand DNA" nie uciekało na dół.
+# --- TABS (ON TOP) ---
 tab_trends, tab_dna, tab_ai = st.tabs(["📈 TRENDS", "🧬 BRAND DNA", "🤖 AI COMPETITOR"])
 
-# === TAB 1: MARKET TRENDS ===
+# === TAB 1: TRENDS ===
 with tab_trends:
     st.markdown("### Market Saturation (Launches)")
     
     if not df_chart.empty:
-        # Prepare Data
         chart_data = df_chart[df_chart['year_clean'] > 0].groupby('year_clean').size().reset_index(name='Count')
         chart_data = chart_data.sort_values('year_clean')
         
         if not chart_data.empty:
-            # LINE CHART - HIGH CONTRAST WHITE/GOLD
+            # High Contrast Chart
             fig = px.line(chart_data, x='year_clean', y='Count', markers=True)
-            
             fig.update_layout(
                 plot_bgcolor='rgba(0,0,0,0)',
                 paper_bgcolor='rgba(0,0,0,0)',
                 font_color='#E0E0E0',
-                # Explicitly White Axis Lines
                 xaxis=dict(showgrid=False, title="", color='#FFF', showline=True, linecolor='#555'),
                 yaxis=dict(showgrid=True, gridcolor='#333', title="", zeroline=False),
                 height=350,
                 margin=dict(l=0,r=0,t=30,b=0),
                 hovermode="x unified"
             )
-            # BRIGHT GOLD LINE + WHITE MARKERS (Hard to miss)
             fig.update_traces(
                 line_color='#D4AF37', 
                 line_width=3, 
@@ -155,7 +144,7 @@ with tab_dna:
     st.markdown("<br>", unsafe_allow_html=True)
     brands = sorted(df['Brand'].unique())
     
-    # DEFAULT SELECTION LOGIC (To avoid #Queensunited)
+    # Default selection logic
     default_ix = 0
     if "Tom Ford" in brands:
         default_ix = brands.index("Tom Ford")
@@ -171,8 +160,7 @@ with tab_dna:
         st.write(f"**Total Scents:** {len(b_df)}")
         if not b_df.empty:
             if 'families' in b_df.columns:
-                mode_val = b_df['families'].mode()
-                style = mode_val[0] if not mode_val.empty else "Unknown"
+                style = b_df['families'].mode()[0] if not b_df['families'].mode().empty else "Unknown"
             else:
                 style = "Unknown"
             st.write(f"**Key Style:** {style}")
@@ -186,17 +174,14 @@ with tab_dna:
                 font_color='#DDD', 
                 height=300, 
                 margin=dict(t=0,b=0),
-                showlegend=True,
-                legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.0)
+                showlegend=True
             )
-            fig_pie.update_traces(textposition='inside', textinfo='percent')
             st.plotly_chart(fig_pie, use_container_width=True)
 
-# === TAB 3: AI COMPETITOR ===
+# === TAB 3: AI ===
 with tab_ai:
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown(f"### AI Match: {sel_brand}")
-    st.caption("Olfactory proximity analysis")
     
     mock = pd.DataFrame({
         'Brand': ['Tom Ford', 'Dior', 'YSL', 'Chanel', 'Gucci'], 
