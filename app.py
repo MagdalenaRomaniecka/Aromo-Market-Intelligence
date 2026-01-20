@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import re
 
 # --- 1. CONFIGURATION ---
 st.set_page_config(
@@ -10,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- 2. DARK LUXURY CSS (FIXED DROPDOWNS & CHARTS) ---
+# --- 2. DARK LUXURY CSS (FIXED DROPDOWNS & VISIBILITY) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Montserrat:wght@300;400;600&display=swap');
@@ -22,26 +23,37 @@ st.markdown("""
     section[data-testid="stSidebar"] { background-color: #000000 !important; border-right: 1px solid #222; }
     section[data-testid="stSidebar"] * { color: #AAAAAA !important; }
 
-    /* FIX: DROPDOWN MENU COLORS (Removes white box) */
+    /* --- FIX: DROPDOWN MENU COLORS (CRITICAL) --- */
+    /* Input box */
     div[data-baseweb="select"] > div {
         background-color: #111 !important;
         color: #E0E0E0 !important;
         border-color: #333 !important;
     }
-    div[data-baseweb="popover"], div[data-baseweb="menu"] {
+    /* The dropdown popup container */
+    div[data-baseweb="popover"], div[data-baseweb="menu"], ul[role="listbox"] {
+        background-color: #111 !important;
+        border: 1px solid #333 !important;
+    }
+    /* The options inside */
+    li[role="option"] {
+        color: #CCCCCC !important;
         background-color: #111 !important;
     }
-    li[role="option"] {
-        color: #E0E0E0 !important;
-    }
+    /* Hover state */
     li[role="option"]:hover, li[role="option"][aria-selected="true"] {
         background-color: #D4AF37 !important;
         color: #000 !important;
     }
+    /* Icons/Arrows */
+    svg { fill: #E0E0E0 !important; }
 
-    /* TYPOGRAPHY */
+    /* TYPOGRAPHY & VISIBILITY */
     h1, h2, h3 { font-family: 'Cormorant Garamond', serif !important; color: #D4AF37 !important; }
-    p, div, span { font-family: 'Montserrat', sans-serif !important; }
+    p, div, span, label { font-family: 'Montserrat', sans-serif !important; }
+    
+    /* Improve subtitle visibility */
+    .caption-text { color: #999 !important; font-size: 0.8rem; }
 
     /* KPI METRIC CARDS */
     div[data-testid="stMetric"] {
@@ -51,8 +63,8 @@ st.markdown("""
         text-align: center;
         border-radius: 4px;
     }
-    div[data-testid="stMetricLabel"] { color: #666 !important; font-size: 0.7rem !important; text-transform: uppercase; }
-    div[data-testid="stMetricValue"] { color: #D4AF37 !important; font-size: 1.8rem !important; font-family: 'Cormorant Garamond', serif !important; }
+    div[data-testid="stMetricLabel"] { color: #888 !important; font-size: 0.75rem !important; text-transform: uppercase; letter-spacing: 1px; }
+    div[data-testid="stMetricValue"] { color: #D4AF37 !important; font-size: 2rem !important; font-family: 'Cormorant Garamond', serif !important; }
 
     /* HIDE SYSTEM ELEMENTS */
     header, footer {visibility: hidden;} 
@@ -61,12 +73,31 @@ st.markdown("""
     /* CUSTOM FOOTER */
     .custom-footer {
         width: 100%; text-align: center; padding: 30px 0; margin-top: 50px;
-        border-top: 1px solid #222; color: #444; font-size: 0.7rem; font-family: 'Montserrat', sans-serif;
+        border-top: 1px solid #222; color: #555; font-size: 0.7rem; font-family: 'Montserrat', sans-serif;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. DATA ENGINE (AGGRESSIVE CLEANING) ---
+# --- 3. DATA ENGINE (ULTRA-AGGRESSIVE CLEANING) ---
+def clean_name_logic(text):
+    """
+    Removes concentrations and variants to merge duplicates.
+    Example: 'Sauvage Eau de Parfum' -> 'Sauvage'
+    """
+    if not isinstance(text, str): return str(text)
+    text = text.lower()
+    # 1. Remove text inside parentheses e.g. (2020)
+    text = re.sub(r'\(.*?\)', '', text)
+    # 2. List of suffixes to remove
+    removals = [
+        ' eau de parfum', ' eau de toilette', ' edp', ' edt', ' parfum', 
+        ' cologne', ' extrait', ' intense', ' l\'eau', ' fraiche', ' extreme',
+        ' absolu', ' absolute', ' legere', ' tendre', ' elixir', ' sport'
+    ]
+    for r in removals:
+        text = text.replace(r, '')
+    return text.strip()
+
 @st.cache_data
 def load_data():
     file_path = 'aromo_english.csv'
@@ -75,26 +106,30 @@ def load_data():
         df = pd.read_csv(file_path, sep=None, engine='python')
         df.columns = df.columns.str.lower().str.strip()
         
-        # --- 1. REMOVE GARBAGE ---
+        # 1. REMOVE GARBAGE ROWS (No Brand or No Name)
         df = df.dropna(subset=['brand'])
         
-        # --- 2. AGGRESSIVE DEDUPLICATION ---
-        # Normalize text to find duplicates like "Dior" vs "dior "
+        # 2. PREPARE COLUMNS
         df['brand_norm'] = df['brand'].astype(str).str.lower().str.strip()
         
+        # Detect Name Column
         name_col = 'name' if 'name' in df.columns else 'perfume'
-        if name_col in df.columns:
-            df['name_norm'] = df[name_col].astype(str).str.lower().str.strip()
-            # Drop duplicates based on normalized Brand + Name
-            df = df.drop_duplicates(subset=['brand_norm', 'name_norm'])
-        else:
-            df = df.drop_duplicates(subset=['brand_norm', 'families'])
+        if name_col not in df.columns: return pd.DataFrame() # Fail safe
+        
+        # 3. ULTRA CLEANING (The Magic Step)
+        # Create a "Universal Name" column by stripping variants
+        df['universal_name'] = df[name_col].apply(clean_name_logic)
+        
+        # 4. DEDUPLICATION
+        # Keep only the FIRST occurrence of Brand + Universal Name
+        # This will massively drop the count
+        df = df.drop_duplicates(subset=['brand_norm', 'universal_name'])
 
-        # --- 3. FORMATTING ---
+        # 5. FORMATTING
         df['Brand'] = df['brand'].astype(str).str.title().str.strip()
         df['families'] = df['families'].fillna('Unclassified')
         
-        # Year Cleaning (Crucial for Charts)
+        # Clean Year - Force invalid years to 0
         df['Year_Numeric'] = pd.to_numeric(df['year'], errors='coerce').fillna(0).astype(int)
         
         return df
@@ -108,10 +143,8 @@ with st.sidebar:
     st.markdown("<h3 style='text-align:center; color:#D4AF37;'>AROMO INTEL.</h3>", unsafe_allow_html=True)
     st.write("---")
     
-    # Time Selection
     time_mode = st.radio("DATA RANGE:", ["Last 10 Years", "Full History"], index=0)
     
-    # Filter Logic
     if not df.empty:
         if time_mode == "Last 10 Years":
             df_active = df[(df['Year_Numeric'] >= 2015) & (df['Year_Numeric'] <= 2025)]
@@ -123,12 +156,12 @@ with st.sidebar:
         df_active = df
         subtitle = ""
 
-# --- 5. MAIN DASHBOARD ---
+# --- 5. DASHBOARD ---
 st.markdown("<h1 style='text-align:center;'>Aromo Market Intelligence</h1>", unsafe_allow_html=True)
-st.markdown(f"<p style='text-align:center; color:#666; font-size:0.8rem; margin-bottom:40px; text-transform:uppercase;'>Strategic Insights • {subtitle}</p>", unsafe_allow_html=True)
+st.markdown(f"<p style='text-align:center; color:#888; font-size:0.8rem; margin-bottom:40px; text-transform:uppercase;'>Strategic Insights • {subtitle}</p>", unsafe_allow_html=True)
 
 if df.empty:
-    st.error("⚠️ Failed to load data. Please check the CSV file.")
+    st.error("⚠️ Failed to load data. Please check CSV.")
     st.stop()
 
 # --- TABS ---
@@ -139,12 +172,12 @@ with tab1:
     st.markdown("<br>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     
-    # KPIs
-    c1.metric("Unique Fragrances", f"{len(df):,}")
+    # Updated Count
+    c1.metric("Unique Fragrances", f"{len(df):,}") 
     
     if not df_active.empty:
         peak = df_active['Year_Numeric'].mode()[0]
-        c2.metric("Peak Activity", int(peak) if peak > 0 else "N/A")
+        c2.metric("Peak Activity", int(peak))
     else:
         c2.metric("Peak Activity", "-")
         
@@ -154,15 +187,18 @@ with tab1:
     st.markdown("---")
     st.markdown("### Market Saturation (Launches per Year)")
     
-    # CHART: AREA CHART (Sorted & Visible)
     if not df_active.empty:
-        # 1. Filter valid years only
-        chart_data = df_active[df_active['Year_Numeric'] > 0]
-        # 2. Group and count
-        trend_data = chart_data.groupby('Year_Numeric').size().reset_index(name='Count')
-        # 3. SORTING IS CRITICAL for Area Chart
+        # DATA PREPARATION FOR CHART
+        # 1. Filter valid years (exclude 0)
+        chart_df = df_active[df_active['Year_Numeric'] > 1900]
+        
+        # 2. Group by Year
+        trend_data = chart_df.groupby('Year_Numeric').size().reset_index(name='Count')
+        
+        # 3. CRITICAL: SORT BY YEAR (Fixes the invisible chart issue)
         trend_data = trend_data.sort_values('Year_Numeric')
         
+        # Area Chart
         fig = px.area(trend_data, x='Year_Numeric', y='Count')
         
         fig.update_layout(
@@ -170,15 +206,17 @@ with tab1:
             plot_bgcolor='rgba(0,0,0,0)',
             font_color='#AAA',
             font_family='Montserrat',
-            xaxis=dict(title="", showgrid=False),
+            # Force X axis to handle years correctly
+            xaxis=dict(title="", showgrid=False, gridcolor='#333'),
             yaxis=dict(title="", showgrid=True, gridcolor='#222'),
             margin=dict(l=0, r=0, t=0, b=0),
-            height=350
+            height=400
         )
+        # Gold Fill
         fig.update_traces(line_color='#D4AF37', fillcolor='rgba(212, 175, 55, 0.2)')
         st.plotly_chart(fig, use_container_width=True)
     else:
-        st.info("No dated data available for the selected period.")
+        st.info("No dated data available.")
 
 # === TAB 2: BRAND DNA ===
 with tab2:
@@ -186,23 +224,23 @@ with tab2:
     
     brands_list = sorted(df['Brand'].unique())
     sel_brand = st.selectbox("Select Brand:", brands_list)
-    
     brand_df = df[df['Brand'] == sel_brand]
     
     c1, c2 = st.columns([1,2])
     with c1:
         st.markdown(f"<h3 style='margin:0; color:#D4AF37;'>{sel_brand}</h3>", unsafe_allow_html=True)
         st.write(f"Total Scents: **{len(brand_df)}**")
-        
         if not brand_df.empty:
-            style = brand_df['families'].mode()[0]
+            # Handle cases where all families are missing
+            if brand_df['families'].isnull().all():
+                style = "Unknown"
+            else:
+                style = brand_df['families'].mode()[0]
             st.write(f"Dominant Style: **{style}**")
             
     with c2:
         if not brand_df.empty:
-            # Simplify for Sunburst
             brand_df['Family_Group'] = brand_df['families'].astype(str).apply(lambda x: x.split(',')[0].strip())
-            
             fig_sun = px.sunburst(brand_df, path=['Family_Group'], color_discrete_sequence=px.colors.qualitative.Pastel)
             fig_sun.update_layout(
                 paper_bgcolor='rgba(0,0,0,0)',
@@ -216,7 +254,7 @@ with tab2:
 with tab3:
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown(f"<h3>AI Match: {sel_brand}</h3>", unsafe_allow_html=True)
-    st.caption("Competitor proximity analysis based on olfactory notes (Simulation)")
+    st.markdown("<p class='caption-text'>Competitor proximity analysis based on olfactory notes (Simulation)</p>", unsafe_allow_html=True)
     
     # Mock Data
     mock = pd.DataFrame({
@@ -226,10 +264,10 @@ with tab3:
     
     fig_ai = px.bar(mock, x='Match Score', y='Competitor', orientation='h', text='Match Score')
     
-    # Fixed hover/text template
+    # FIXED: Text Template (Removed the %text% bug)
     fig_ai.update_traces(
         marker_color='#D4AF37', 
-        texttemplate='%{text}%', 
+        texttemplate='%{text}', # Shows just the number
         textposition='inside'
     )
     
