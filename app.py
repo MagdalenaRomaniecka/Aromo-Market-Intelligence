@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import re
 
 # --- 1. CONFIGURATION ---
 st.set_page_config(
@@ -48,23 +49,25 @@ def load_data():
         df = pd.read_csv(file_path, sep=None, engine='python')
         df.columns = df.columns.str.lower().str.strip()
         
-        # 1. Cleanup
+        # 1. Cleanup Empty Brands
         df = df.dropna(subset=['brand'])
         
-        # 2. Year Parsing
+        # 2. BRAND NAME CLEANING (Remove #, *, - from start)
+        # To naprawia #Queensunited -> Queensunited
+        df['Brand'] = df['brand'].astype(str).str.strip().str.lstrip("#*-").str.title()
+        
+        # 3. Year Parsing
         df['year_clean'] = pd.to_numeric(df['year'], errors='coerce').fillna(0).astype(int)
         
-        # 3. BALANCED DEDUPLICATION
+        # 4. DEDUPLICATION (Powrót do ~65k)
         name_col = 'name' if 'name' in df.columns else 'perfume'
         if name_col in df.columns:
-            df['brand_norm'] = df['brand'].astype(str).str.lower().str.strip()
             df['name_norm'] = df[name_col].astype(str).str.lower().str.strip()
-            # Drop duplicates
+            df['brand_norm'] = df['Brand'].str.lower()
+            # Usuwamy duplikaty: Ta sama marka + Ta sama nazwa
             df = df.drop_duplicates(subset=['brand_norm', 'name_norm'])
         
-        # 4. Formatting - FIXED THE ERROR HERE
-        # Było: .strip() -> Jest: .str.strip()
-        df['Brand'] = df['brand'].astype(str).str.title().str.strip()
+        # 5. Fill Missing Families
         df['families'] = df['families'].fillna('Unknown')
         
         return df
@@ -97,44 +100,39 @@ if df.empty:
 
 # KPI
 c1, c2, c3 = st.columns(3)
-c1.metric("Unique Fragrances", f"{len(df):,}") 
-c2.metric("Peak Activity", int(df_chart['year_clean'].mode()[0]) if not df_chart.empty else "-")
+c1.metric("Unique Fragrances", f"{len(df):,}") # Powinno być ok. 60-70k
+c2.metric("Peak Year", int(df_chart['year_clean'].mode()[0]) if not df_chart.empty else "-")
 c3.metric("Active Brands", f"{df['Brand'].nunique():,}")
 
 st.markdown("---")
 
-# --- TABS (ON TOP) ---
+# --- TABS ---
 tab_trends, tab_dna, tab_ai = st.tabs(["📈 TRENDS", "🧬 BRAND DNA", "🤖 AI COMPETITOR"])
 
-# === TAB 1: TRENDS ===
+# === TAB 1: TRENDS (BAR CHART - PEWNIAK) ===
 with tab_trends:
-    st.markdown("### Market Saturation (Launches)")
+    st.markdown("### Annual Releases") # Prostszy tytuł
     
     if not df_chart.empty:
         chart_data = df_chart[df_chart['year_clean'] > 0].groupby('year_clean').size().reset_index(name='Count')
         chart_data = chart_data.sort_values('year_clean')
         
         if not chart_data.empty:
-            # High Contrast Chart
-            fig = px.line(chart_data, x='year_clean', y='Count', markers=True)
+            # BAR CHART jest zawsze widoczny i czytelny
+            fig = px.bar(chart_data, x='year_clean', y='Count')
+            
             fig.update_layout(
                 plot_bgcolor='rgba(0,0,0,0)',
                 paper_bgcolor='rgba(0,0,0,0)',
                 font_color='#E0E0E0',
-                xaxis=dict(showgrid=False, title="", color='#FFF', showline=True, linecolor='#555'),
-                yaxis=dict(showgrid=True, gridcolor='#333', title="", zeroline=False),
+                xaxis=dict(showgrid=False, title="", color='#AAA'),
+                yaxis=dict(showgrid=True, gridcolor='#222', title="", zeroline=False),
                 height=350,
                 margin=dict(l=0,r=0,t=30,b=0),
                 hovermode="x unified"
             )
-            fig.update_traces(
-                line_color='#D4AF37', 
-                line_width=3, 
-                marker_size=6, 
-                marker_color='white',
-                marker_line_width=1,
-                marker_line_color='#D4AF37'
-            )
+            # Złote słupki
+            fig.update_traces(marker_color='#D4AF37')
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.warning("No data for chart.")
@@ -144,13 +142,8 @@ with tab_dna:
     st.markdown("<br>", unsafe_allow_html=True)
     brands = sorted(df['Brand'].unique())
     
-    # Default selection logic
-    default_ix = 0
-    if "Tom Ford" in brands:
-        default_ix = brands.index("Tom Ford")
-    elif "Chanel" in brands:
-        default_ix = brands.index("Chanel")
-        
+    # Domyślnie Tom Ford (żeby nie było Queensunited na starcie)
+    default_ix = brands.index("Tom Ford") if "Tom Ford" in brands else 0
     sel_brand = st.selectbox("Select Brand:", brands, index=default_ix)
     b_df = df[df['Brand'] == sel_brand]
     
@@ -159,10 +152,7 @@ with tab_dna:
         st.markdown(f"<h2 style='color:#D4AF37; margin:0'>{sel_brand}</h2>", unsafe_allow_html=True)
         st.write(f"**Total Scents:** {len(b_df)}")
         if not b_df.empty:
-            if 'families' in b_df.columns:
-                style = b_df['families'].mode()[0] if not b_df['families'].mode().empty else "Unknown"
-            else:
-                style = "Unknown"
+            style = b_df['families'].mode()[0] if not b_df['families'].mode().empty else "Unknown"
             st.write(f"**Key Style:** {style}")
             
     with colB:
@@ -178,24 +168,26 @@ with tab_dna:
             )
             st.plotly_chart(fig_pie, use_container_width=True)
 
-# === TAB 3: AI ===
+# === TAB 3: AI COMPETITOR (NAPRAWIONE ETYKIETY) ===
 with tab_ai:
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown(f"### AI Match: {sel_brand}")
     
     mock = pd.DataFrame({
-        'Brand': ['Tom Ford', 'Dior', 'YSL', 'Chanel', 'Gucci'], 
-        'Match': [95, 88, 82, 75, 70]
+        'Competitor': ['Tom Ford', 'Dior', 'YSL', 'Chanel', 'Gucci'], # Jasna nazwa kolumny
+        'Match Score': [95, 88, 82, 75, 70]
     })
     
-    fig_bar = px.bar(mock, x='Match', y='Brand', orientation='h', text_auto=True)
+    # Wyraźnie wskazujemy: Y to Marka, X to Wynik
+    fig_bar = px.bar(mock, x='Match Score', y='Competitor', orientation='h', text_auto=True)
+    
     fig_bar.update_traces(marker_color='#D4AF37', textfont_color='black', textposition='inside')
     fig_bar.update_layout(
         plot_bgcolor='rgba(0,0,0,0)', 
         paper_bgcolor='rgba(0,0,0,0)', 
         font_color='#AAA', 
         xaxis=dict(visible=False), 
-        yaxis=dict(title=""), 
+        yaxis=dict(title=""), # Usuwamy tytuł osi Y, same nazwy wystarczą
         height=250, 
         margin=dict(t=0,b=0)
     )
