@@ -39,7 +39,6 @@ st.markdown("""
 # --- 3. DATA ENGINE ---
 @st.cache_data(ttl=0)
 def load_data():
-    # UŻYWAMY PLIKU OCZYSZCZONEGO (Z TWOJEGO ZRZUTU EKRANU)
     file_path = 'aromo_cleaned.csv'
     
     try:
@@ -67,8 +66,9 @@ def load_data():
             df['core_name'] = df[name_col].apply(get_core_name)
             df = df.drop_duplicates(subset=['brand_norm', 'core_name'])
         
-        # 4. Formatting
-        df['Brand'] = df['brand'].astype(str).str.title().strip()
+        # 4. Formatting (FIXED THE ERROR HERE)
+        # Błąd był tu: .strip() zamiast .str.strip()
+        df['Brand'] = df['brand'].astype(str).str.title().str.strip()
         df['families'] = df['families'].fillna('Unknown')
         
         return df
