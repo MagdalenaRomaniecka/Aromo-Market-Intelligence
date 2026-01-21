@@ -42,6 +42,7 @@ st.markdown("""
 # --- 3. DATA ENGINE ---
 @st.cache_data(ttl=0)
 def load_data():
+    # UŻYWAMY GŁÓWNEGO PLIKU
     file_path = 'aromo_english.csv'
     try:
         df = pd.read_csv(file_path, sep=None, engine='python')
@@ -50,7 +51,7 @@ def load_data():
         # Cleanup
         df = df.dropna(subset=['brand'])
         
-        # Fix Brand Names (Remove #, *)
+        # Clean Brand Names
         df['Brand'] = df['brand'].astype(str).str.strip().str.lstrip("#*-").str.title()
         
         # Year Parsing
@@ -104,7 +105,7 @@ st.markdown("---")
 # --- TABS (ON TOP) ---
 tab_trends, tab_dna, tab_ai = st.tabs(["📈 TRENDS", "🧬 BRAND DNA", "🤖 AI COMPETITOR"])
 
-# === TAB 1: TRENDS (AREA CHART - ALWAYS VISIBLE) ===
+# === TAB 1: TRENDS (AREA CHART) ===
 with tab_trends:
     st.markdown("### Market Saturation")
     
@@ -114,7 +115,7 @@ with tab_trends:
         chart_data = chart_data.sort_values('year_clean')
         
         if not chart_data.empty:
-            # AREA CHART (Filled Mountain) - Najlepiej widoczny
+            # AREA CHART (Filled Mountain) - ZAWSZE WIDOCZNY
             fig = px.area(chart_data, x='year_clean', y='Count')
             
             fig.update_layout(
@@ -134,7 +135,7 @@ with tab_trends:
         else:
             st.warning("No data for chart.")
 
-# === TAB 2: BRAND DNA (LABELS INSIDE) ===
+# === TAB 2: BRAND DNA (CLEAN PIE) ===
 with tab_dna:
     st.markdown("<br>", unsafe_allow_html=True)
     brands = sorted(df['Brand'].unique())
@@ -162,13 +163,13 @@ with tab_dna:
                 font_color='#DDD', 
                 height=300, 
                 margin=dict(t=0,b=0),
-                showlegend=False # UKRYWAMY LEGENDĘ (zajmuje miejsce)
+                showlegend=False # UKRYTA LEGENDA
             )
-            # POKAZUJEMY NAZWY NA WYKRESIE
+            # POKAZUJEMY DANE NA WYKRESIE
             fig_pie.update_traces(textposition='inside', textinfo='percent+label')
             st.plotly_chart(fig_pie, use_container_width=True)
 
-# === TAB 3: AI COMPETITOR (CLEAN AXIS) ===
+# === TAB 3: AI COMPETITOR (NO NUMBERS ON AXIS) ===
 with tab_ai:
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown(f"### AI Match: {sel_brand}")
@@ -193,7 +194,7 @@ with tab_ai:
         plot_bgcolor='rgba(0,0,0,0)', 
         paper_bgcolor='rgba(0,0,0,0)', 
         font_color='#AAA', 
-        # CAŁKOWICIE UKRYWAMY DOLNĄ OŚ (1, 2, 3...)
+        # UKRYTA OŚ LICZBOWA
         xaxis=dict(visible=False), 
         yaxis=dict(title=""), 
         height=250, 
