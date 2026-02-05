@@ -96,3 +96,43 @@ Aromo-Market-Intelligence/
 ├── aromo_english.csv    # Processed dataset
 ├── requirements.txt     # Python dependencies
 └── README.md            # Project documentation
+
+<div align="center">
+
+# 💎 Aromo Market Intelligence
+### The Luxury Fragrance Analytics Dashboard
+
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://huggingface.co/spaces/Baphomert/Aromo-Market-Intelligence)
+[![Python](https://img.shields.io/badge/Python-3.9+-F7D139?style=flat&logo=python&logoColor=black)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Status](https://img.shields.io/badge/Status-Live-success)]()
+
+<p align="center">
+  <a href="#-overview">Overview</a> •
+  <a href="#-key-features">Key Features</a> •
+  <a href="#-market-insights">Market Insights</a> •
+  <a href="#-tech-stack">Tech Stack</a> •
+  <a href="#-installation">Installation</a>
+</p>
+
+</div>
+
+---
+
+## 💎 Overview
+
+**Aromo Market Intelligence** is an interactive Business Intelligence tool designed for the perfumery sector. It transforms raw data into actionable insights, allowing users to explore global trends, decode brand DNA, and analyze the market structure of over **78,000 fragrances**.
+
+The application bridges the gap between data science and luxury aesthetics, offering a "Dark Atelier" interface that fits the industry standard.
+
+👉 **[Live Demo on Hugging Face](https://huggingface.co/spaces/Baphomert/Aromo-Market-Intelligence)**
+
+---
+
+## 🚀 Key Features
+
+| Feature | Description |
+| :--- | :--- |
+| **Global Macro Analysis** | Visualization of market volume, dominance of olfactory families, and release timelines. |
+| **Brand Profiling** | Deep-dive into specific Houses (e.g., *Tom Ford*, *Chanel*) to visualize their unique ingredient signatures. |
+| **Interactive Filtering** | Dynamic switching between
