@@ -96,6 +96,9 @@ Aromo-Market-Intelligence/
 ├── aromo_english.csv    # Processed dataset
 ├── requirements.txt     # Python dependencies
 └── README.md            # Project documentation
+```
+
+---
 
 ## 💻 Installation
 
@@ -103,7 +106,7 @@ To run this dashboard locally, follow these steps:
 
 1.  **Clone the repository**
     ```bash
-    git clone [https://github.com/MagdalenaRomaniecka/Aromo-Market-Intelligence.git](https://github.com/MagdalenaRomaniecka/Aromo-Market-Intelligence.git)
+    git clone https://github.com/MagdalenaRomaniecka/Aromo-Market-Intelligence.git
     cd Aromo-Market-Intelligence
     ```
 
