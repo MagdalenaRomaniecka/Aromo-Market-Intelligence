@@ -97,42 +97,34 @@ Aromo-Market-Intelligence/
 ├── requirements.txt     # Python dependencies
 └── README.md            # Project documentation
 
+## 💻 Installation
+
+To run this dashboard locally, follow these steps:
+
+1.  **Clone the repository**
+    ```bash
+    git clone [https://github.com/MagdalenaRomaniecka/Aromo-Market-Intelligence.git](https://github.com/MagdalenaRomaniecka/Aromo-Market-Intelligence.git)
+    cd Aromo-Market-Intelligence
+    ```
+
+2.  **Install dependencies**
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+3.  **Run the app**
+    ```bash
+    streamlit run app.py
+    ```
+
+---
+
 <div align="center">
 
-# 💎 Aromo Market Intelligence
-### The Luxury Fragrance Analytics Dashboard
+**Developed by Magdalena Romaniecka**
+<br>
+2026 • Data Science Portfolio
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://huggingface.co/spaces/Baphomert/Aromo-Market-Intelligence)
-[![Python](https://img.shields.io/badge/Python-3.9+-F7D139?style=flat&logo=python&logoColor=black)](https://www.python.org/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Status](https://img.shields.io/badge/Status-Live-success)]()
-
-<p align="center">
-  <a href="#-overview">Overview</a> •
-  <a href="#-key-features">Key Features</a> •
-  <a href="#-market-insights">Market Insights</a> •
-  <a href="#-tech-stack">Tech Stack</a> •
-  <a href="#-installation">Installation</a>
-</p>
+[LinkedIn](https://www.linkedin.com/) • [GitHub](https://github.com/MagdalenaRomaniecka)
 
 </div>
-
----
-
-## 💎 Overview
-
-**Aromo Market Intelligence** is an interactive Business Intelligence tool designed for the perfumery sector. It transforms raw data into actionable insights, allowing users to explore global trends, decode brand DNA, and analyze the market structure of over **78,000 fragrances**.
-
-The application bridges the gap between data science and luxury aesthetics, offering a "Dark Atelier" interface that fits the industry standard.
-
-👉 **[Live Demo on Hugging Face](https://huggingface.co/spaces/Baphomert/Aromo-Market-Intelligence)**
-
----
-
-## 🚀 Key Features
-
-| Feature | Description |
-| :--- | :--- |
-| **Global Macro Analysis** | Visualization of market volume, dominance of olfactory families, and release timelines. |
-| **Brand Profiling** | Deep-dive into specific Houses (e.g., *Tom Ford*, *Chanel*) to visualize their unique ingredient signatures. |
-| **Interactive Filtering** | Dynamic switching between
