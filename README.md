@@ -10,108 +10,89 @@ pinned: false
 license: mit
 ---
 
-# Aromo Market Intelligence 📊
+<div align="center">
 
-Professional dashboard for fragrance market analysis.
 # 💎 Aromo Market Intelligence
+### The Luxury Fragrance Analytics Dashboard
 
-[![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Live%20App-blue)](https://huggingface.co/spaces/Baphomert/Aromo-Market-Intelligence)
-[![Python](https://img.shields.io/badge/Python-3.9%2B-yellow)](https://www.python.org/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.31-red)](https://streamlit.io/)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://huggingface.co/spaces/Baphomert/Aromo-Market-Intelligence)
+[![Python](https://img.shields.io/badge/Python-3.9+-F7D139?style=flat&logo=python&logoColor=black)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Status](https://img.shields.io/badge/Status-Live-success)]()
 
-**A comprehensive Business Intelligence dashboard for the fragrance industry, exploring global trends, brand DNA, and the structure of the olfactory market.**
+<p align="center">
+  <a href="#-overview">Overview</a> •
+  <a href="#-key-features">Key Features</a> •
+  <a href="#-market-insights">Market Insights</a> •
+  <a href="#-tech-stack">Tech Stack</a> •
+  <a href="#-installation">Installation</a>
+</p>
 
-👉 **[View Live App](https://huggingface.co/spaces/Baphomert/Aromo-Market-Intelligence)**
-
----
-
-## 🎯 Project Objective
-The goal was to build a specialized analytical tool ("Atelier") for the perfumery sector that enables:
-1.  **Macro Analysis:** Understanding global market shifts, dominant olfactory families, and release dynamics over decades.
-2.  **Micro Analysis:** Profiling specific fashion houses (e.g., Tom Ford, Chanel) to decode their unique "scent signature."
-3.  **Data Verification:** Transforming a raw, noisy dataset into interactive, actionable insights.
-
----
-
-## ⚙️ Process & Methodology (The Data Science Journey)
-
-The path from raw data to the final v145 deployment involved several critical stages:
-
-### 1. Data Wrangling & Cleaning
-The project utilizes the Aromo.ru dataset (78,000+ records).
-* **Challenge:** The raw data contained significant noise—inconsistent date formats, duplicate scent notes, and missing segmentations.
-* **Solution:** Custom Pandas scripts were implemented to normalize brand names, convert data types, and extract specific fragrance notes from unstructured text strings.
-
-### 2. UI/UX Design ("Dark Luxury")
-Standard analytical dashboards often lack aesthetic appeal. This project adopted a **"Dark Luxury"** philosophy:
-* **Custom CSS:** Injected code to force a dark, high-contrast theme suitable for a premium industry.
-* **Typography:** Integration of *Cormorant Garamond* (headers) and *Montserrat* (body) to reflect the elegance of high-end perfume labeling.
-* **UX Fixes:** Overriding default Streamlit elements (like dropdown backgrounds) to ensure visual consistency.
-
-### 3. Visualization Logic
-* **Tools:** Plotly Graph Objects for high-fidelity interactive charts.
-* **Technical Challenge:** Ensuring accurate scaling for global market data. Early iterations struggled with plotting large datasets, occasionally misinterpreting index positions as data values.
-* **Final Solution (v145):** The codebase now uses explicit value extraction (`Series.values` and `Series.index`) to guarantee mathematical accuracy, correctly displaying high-volume data (e.g., mass-market brands with 900+ releases) without truncation or indexing errors.
-
----
-## 📊 Data Analysis & Market Insights
-
-By visualizing over 78,000 records, several distinct patterns in the global fragrance market emerged. Below is a breakdown of the key findings derived from the dashboard charts:
-
-### 1. The Volume vs. Prestige Paradox (Top Brands Chart)
-The "Top 15 Brands" chart reveals a counter-intuitive insight: **High recognition does not equal high volume.**
-* **Finding:** The list is dominated by catalog and direct-sales brands (e.g., *Avon, Oriflame, Faberlic*), which operate on a "Fast Perfumery" model, releasing dozens of scents annually.
-* **Contrast:** Luxury fashion houses (like *Chanel* or *Dior*) appear much lower on the volume scale, confirming their strategy of scarcity and exclusivity over mass saturation.
-
-### 2. The "Fast Fashion" of Fragrance (Timeline Chart)
-The "Launch History" chart depicts a massive, exponential spike in releases starting around 2000-2010.
-* **Insight:** This correlates with two major industry phenomena:
-    1.  **The Flanker Strategy:** Brands releasing multiple variations of a bestseller (e.g., *Black Opium*, *Black Opium Neon*, *Black Opium Extreme*) to capture shelf space.
-    2.  **Niche Boom:** The explosion of independent artisan perfumery, flooding the market with experimental scents.
-
-### 3. Olfactory Conservatism vs. Trends (Families Chart)
-Despite the rise of niche perfumery, the global market remains conservative.
-* **Dominance:** The **"Floral"** family is the undisputed hegemon, accounting for the vast majority of releases. It is the "safe bet" for mass-market profitability.
-* **Trend:** However, the high rank of **"Amber" (Oriental)** and **"Woody"** families suggests a shifting consumer preference towards unisex, warmer, and more complex profiles in the modern era.
-
-### 4. Semantic Branding (Word Cloud Analysis)
-Analyzing the most frequent words in perfume names reveals marketing psychology.
-* **Findings:** Keywords like **"Love," "Night," "Blue," "Rose,"** and **"Gold"** dominate.
-* **Conclusion:** Brands prioritize emotional triggers (Romance, Mystery) and associations with luxury materials (Gold) over descriptive ingredient names, except for "Rose" and "Oud," which have strong standalone marketing power.
-
-### 5. Case Study: Tom Ford (Micro-Analysis)
-Using the "Brand Analysis" tab to isolate *Tom Ford* reveals a different DNA than the global average.
-* **Differentiation:** Unlike the global "Floral" dominance, Tom Ford's portfolio leans heavily into **"Woody"** and **"Spicy"** segments.
-* **Strategy:** This confirms the brand's positioning as a disruptor in the "High-End / Private Blend" sector, targeting a customer looking for bold, non-traditional compositions.
-
+</div>
 
 ---
 
-## 🛠️ Tech Stack
+## 💎 Overview
 
-* **Language:** Python 3.9
-* **Frontend:** Streamlit (Customized)
-* **Data Manipulation:** Pandas, NumPy, Collections
-* **Visualization:** Plotly Graph Objects
-* **Deployment:** Hugging Face Spaces (Dockerized environment)
+**Aromo Market Intelligence** is an interactive Business Intelligence tool designed for the perfumery sector. It transforms raw data into actionable insights, allowing users to explore global trends, decode brand DNA, and analyze the market structure of over **78,000 fragrances**.
 
----
+The application bridges the gap between data science and luxury aesthetics, offering a "Dark Atelier" interface that fits the industry standard.
 
-## 🚀 How to Run Locally
-
-1.  Clone the repository:
-    ```bash
-    git clone [https://github.com/MagdalenaRomaniecka/Aromo-Market-Intelligence.git](https://github.com/MagdalenaRomaniecka/Aromo-Market-Intelligence.git)
-    ```
-2.  Install dependencies:
-    ```bash
-    pip install streamlit pandas plotly
-    ```
-3.  Run the application:
-    ```bash
-    streamlit run app.py
-    ```
+👉 **[Live Demo on Hugging Face](https://huggingface.co/spaces/Baphomert/Aromo-Market-Intelligence)**
 
 ---
 
-*Developed by Magdalena Romaniecka © 2026*
+## 🚀 Key Features
+
+| Feature | Description |
+| :--- | :--- |
+| **Global Macro Analysis** | Visualization of market volume, dominance of olfactory families, and release timelines. |
+| **Brand Profiling** | Deep-dive into specific Houses (e.g., *Tom Ford*, *Chanel*) to visualize their unique ingredient signatures. |
+| **Interactive Filtering** | Dynamic switching between "All Products" and "Fine Fragrance Only" to refine metrics. |
+| **Luxury UI/UX** | Custom CSS implementation featuring a "Dark Mode" aesthetic and serif typography. |
+
+---
+
+## 📊 Market Insights & Data Story
+
+*Based on the analysis of 78,000+ records using the dashboard:*
+
+### 1. The Volume vs. Prestige Paradox
+> **High recognition does not equal high volume.**
+The market volume is dominated by catalog brands (e.g., *Avon, Oriflame*) operating on a "Fast Perfumery" model. Luxury houses prioritize scarcity over saturation.
+
+### 2. The "Fast Fashion" of Fragrance
+The **Launch History** chart reveals an exponential spike in releases post-2000. This correlates with two phenomena:
+* **The Flanker Strategy:** Brands releasing multiple variations of bestsellers to capture shelf space.
+* **Niche Boom:** The explosion of independent artisan perfumery.
+
+### 3. Olfactory Trends
+* **Dominance:** The **"Floral"** family is the undisputed global hegemon—the "safe bet" for profitability.
+* **Shift:** A rising trend in **"Amber"** and **"Woody"** families suggests a modern shift towards unisex and complex profiles.
+
+### 4. Semantic Branding
+Marketing psychology is visible in naming conventions. Keywords like **"Love," "Night," "Blue,"** and **"Gold"** dominate, proving that brands prioritize emotional triggers over ingredient descriptions.
+
+---
+
+## 🛠 Tech Stack
+
+The project was built using a modern Python data stack:
+
+* **Core:** `Python 3.9`
+* **Frontend:** `Streamlit` (with Custom CSS Injection)
+* **Data Processing:** `Pandas`, `NumPy`
+* **Visualization:** `Plotly Graph Objects`
+* **Deployment:** `Hugging Face Spaces` (Docker container)
+
+---
+
+## 📂 Project Structure
+
+```text
+Aromo-Market-Intelligence/
+├── .streamlit/          # Streamlit configuration
+├── app.py               # Main application logic & UI
+├── aromo_english.csv    # Processed dataset
+├── requirements.txt     # Python dependencies
+└── README.md            # Project documentation
