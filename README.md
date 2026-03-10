@@ -1,3 +1,7 @@
+> **⚠️ ECOSYSTEM NOTICE:** This repository is a sub-module/satellite project. The logic, data, and algorithms developed here have been integrated into the final, comprehensive master project. 
+> 
+> **👉 [CLICK HERE TO VIEW THE MAIN PROJECT: GLOBAL FRAGRANCE INTELLIGENCE HUB](https://github.com/MagdalenaRomaniecka/Global-Fragrance-Intelligence-Hub) 👈**
+
 ---
 title: Aromo Market Intelligence
 emoji: 📊
